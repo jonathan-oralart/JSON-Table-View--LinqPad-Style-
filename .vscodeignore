@@ -1,0 +1,14 @@
+# Folders to ignore
+node_modules
+.vscode
+src
+
+# Files to ignore
+.gitignore
+esbuild.mjs
+tsconfig.json
+package-lock.json
+*.tsbuildinfo
+
+README.md
+big-json-example-abacus.json
