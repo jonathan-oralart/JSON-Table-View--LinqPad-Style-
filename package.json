@@ -2,7 +2,7 @@
     "name": "json-table-view",
     "displayName": "JSON Table View (LinqPad-Style)",
     "description": "View JSON files as a nested table, inspired by LinqPad's Dump method.",
-    "version": "0.2.5",
+    "version": "0.2.6",
     "publisher": "jonathan-oralart",
     "icon": "icon.png",
     "engines": {

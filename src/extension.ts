@@ -47,34 +47,54 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             );
 
-            // Set an initial loading message
-            panel.webview.html = `<body><h1><br/>&nbsp;&nbsp;⏳ Parsing and rendering JSON...</h1></body>`;
+            // Create updateWebview function for the manual command
+            const updateWebview = () => {
+                // Set an initial loading message
+                panel.webview.html = `<body><h1><br/>&nbsp;&nbsp;⏳ Parsing and rendering JSON...</h1></body>`;
 
-            // Process asynchronously to avoid blocking
-            setTimeout(() => {
-                try {
-                    const text = doc.getText();
-                    // Add a file size limit (e.g., 20 MB) to prevent crashes
-                    if (text.length > 20 * 1024 * 1024) {
-                        vscode.window.showErrorMessage('File is too large to display as a table.');
-                        panel.webview.html = `<body><h1>File is too large (>20MB) to display as a table.</h1></body>`;
-                        return;
-                    }
+                // Process asynchronously to avoid blocking
+                setTimeout(() => {
+                    try {
+                        const text = doc.getText();
+                        // Add a file size limit (e.g., 20 MB) to prevent crashes
+                        if (text.length > 20 * 1024 * 1024) {
+                            vscode.window.showErrorMessage('File is too large to display as a table.');
+                            panel.webview.html = `<body><h1>File is too large (>20MB) to display as a table.</h1></body>`;
+                            return;
+                        }
 
-                    console.log('Parsing JSON content...');
-                    const jsonContent = JSON.parse(text);
-                    const defaultOpenLevels = vscode.workspace.getConfiguration('json-table-view').get('defaultOpenLevels', 3);
-                    console.log('JSON parsed successfully. Setting webview HTML.');
-                    panel.webview.html = getHtmlOfObjectTable(jsonContent, defaultOpenLevels);
-                } catch (error) {
-                    let message = 'An unknown error occurred while parsing JSON.';
-                    if (error instanceof Error) {
-                        message = `Error parsing JSON: ${error.message}`;
+                        console.log('Parsing JSON content...');
+                        const jsonContent = JSON.parse(text);
+                        const defaultOpenLevels = vscode.workspace.getConfiguration('json-table-view').get('defaultOpenLevels', 3);
+                        console.log('JSON parsed successfully. Setting webview HTML.');
+                        panel.webview.html = getHtmlOfObjectTable(jsonContent, defaultOpenLevels);
+                    } catch (error) {
+                        let message = 'An unknown error occurred while parsing JSON.';
+                        if (error instanceof Error) {
+                            message = `Error parsing JSON: ${error.message}`;
+                        }
+                        console.error(message, error);
+                        panel.webview.html = `<body><h1>${message}</h1></body>`;
                     }
-                    console.error(message, error);
-                    panel.webview.html = `<body><h1>${message}</h1></body>`;
+                }, 10);
+            };
+
+            // Add document change listener for automatic refresh
+            const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(e => {
+                if (e.document.uri.toString() === doc.uri.toString()) {
+                    console.log('Document changed, refreshing JSON table view...');
+                    updateWebview();
                 }
-            }, 10);
+            });
+
+            // Clean up the subscription when the panel is disposed
+            panel.onDidDispose(() => {
+                changeDocumentSubscription.dispose();
+                console.log('JSON table view panel disposed, document change listener removed.');
+            });
+
+            // Initial render
+            updateWebview();
         });
 
         context.subscriptions.push(openInViewCommand);
